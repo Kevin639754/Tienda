@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gestión de Productos</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 2rem;
+      max-width: 800px;
+      margin: auto;
+    }
+    input, textarea, button {
+      display: block;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      width: 100%;
+    }
+    .product {
+      border: 1px solid #ccc;
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+    img {
+      max-width: 100px;
+      margin-top: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Gestión de Productos</h1>
+
+  <input type="text" id="name" placeholder="Nombre del producto" />
+  <input type="number" id="price" placeholder="Precio (ej. 10.50)" step="0.01" />
+  <textarea id="description" placeholder="Descripción"></textarea>
+  <input type="file" id="image" accept="image/*" />
+  <button onclick="addProduct()">Agregar producto</button>
+
+  <input type="text" id="search" placeholder="Buscar producto..." oninput="renderProducts()" />
+
+  <div id="products"></div>
+
+  <script>
+    let products = JSON.parse(localStorage.getItem('products') || '[]');
+
+    function addProduct() {
+      const name = document.getElementById('name').value;
+      const price = document.getElementById('price').value;
+      const description = document.getElementById('description').value;
+      const imageInput = document.getElementById('image');
+
+      if (!name || !price) return;
+
+      const reader = new FileReader();
+      reader.onload = function () {
+        const product = {
+          id: Date.now(),
+          name,
+          price,
+          description,
+          image: reader.result
+        };
+        products.push(product);
+        localStorage.setItem('products', JSON.stringify(products));
+        clearForm();
+        renderProducts();
+      };
+
+      if (imageInput.files[0]) {
+        reader.readAsDataURL(imageInput.files[0]);
+      } else {
+        reader.onload(); // handle no image case
+      }
+    }
+
+    function deleteProduct(id) {
+      products = products.filter(p => p.id !== id);
+      localStorage.setItem('products', JSON.stringify(products));
+      renderProducts();
+    }
+
+    function clearForm() {
+      document.getElementById('name').value = "";
+      document.getElementById('price').value = "";
+      document.getElementById('description').value = "";
+      document.getElementById('image').value = "";
+    }
+
+    function renderProducts() {
+      const search = document.getElementById('search').value.toLowerCase();
+      const container = document.getElementById('products');
+      container.innerHTML = '';
+
+      products.filter(p => p.name.toLowerCase().includes(search)).forEach(product => {
+        const div = document.createElement('div');
+        div.className = 'product';
+        div.innerHTML = `
+          <input value="${product.name}" onchange="editProduct(${product.id}, 'name', this.value)" />
+          <input type="number" step="0.01" value="${product.price}" onchange="editProduct(${product.id}, 'price', this.value)" />
+          <textarea onchange="editProduct(${product.id}, 'description', this.value)">${product.description}</textarea>
+          ${product.image ? `<img src="${product.image}" />` : ''}
+          <button onclick="deleteProduct(${product.id})">Eliminar</button>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function editProduct(id, field, value) {
+      products = products.map(p => p.id === id ? { ...p, [field]: value } : p);
+      localStorage.setItem('products', JSON.stringify(products));
+    }
+
+    renderProducts();
+  </script>
+</body>
+</html>
